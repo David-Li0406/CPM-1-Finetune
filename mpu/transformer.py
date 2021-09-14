@@ -109,6 +109,7 @@ class GPT2ParallelSelfAttention(torch.nn.Module):
         return tensor.permute(0, 2, 1, 3)
 
     def forward(self, hidden_states, ltor_mask):
+        print('ltor_mask:',ltor_mask.shape)
         # hidden_states: [b, s, h]
         # ltor_mask: [1, 1, s, s]
 
@@ -129,6 +130,7 @@ class GPT2ParallelSelfAttention(torch.nn.Module):
         attention_scores = attention_scores / math.sqrt(
             self.hidden_size_per_attention_head)
         # Apply the left to right attention mask.
+        print('attention_scores',attention_scores.shape)
         attention_scores = torch.mul(attention_scores, ltor_mask) - \
                            10000.0 * (1.0 - ltor_mask)
 

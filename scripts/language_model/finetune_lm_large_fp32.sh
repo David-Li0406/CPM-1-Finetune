@@ -1,7 +1,7 @@
 #!/bin/bash
-
-DATA_DIR="/data/STC/preprocessed/"
-CHECKPOINT_PATH="/data/checkpoints/CPM-large"
+export CUDA_VISIBLE_DEVICES=2
+DATA_DIR="data/STC_data_pro"
+CHECKPOINT_PATH="models/STC/CPM_test"
 RESULTS_DIR="results/"
 MODEL_NAME="finetune-dial-large-fp32"
 TOKENIZER_PATH="bpe_3w_new/"
@@ -14,8 +14,7 @@ MAXSEQLEN=200
 CUR_PATH=$(realpath $0)
 CUR_DIR=$(dirname ${CUR_PATH})
 DS_CONFIG="${CUR_DIR}/../ds_config/ds_finetune_lm_large_fp32.json"
-
-python3 -m torch.distributed.launch --master_port ${1-1122} --nproc_per_node 8 finetune_lm.py \
+python3 -m torch.distributed.launch --master_port 1111 --nproc_per_node 1 finetune_lm.py \
        --do_train \
        --do_eval \
        --data_dir ${DATA_DIR} \
