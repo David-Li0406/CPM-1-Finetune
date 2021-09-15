@@ -106,7 +106,7 @@ class GenDataset(torch.utils.data.Dataset):
         return batch_sample, no_model_sample
 
 
-def load_data(args, data_type, tokenizer, ratio=1):
+def load_data(args, data_type, tokenizer, ratio=0.1):
     data_path = args.data_dir
 
     # Data parallel arguments.
@@ -187,8 +187,8 @@ def main():
 
     # load train data
     if args.do_train:
-        train_dataloader, _ = load_data(args, 'train', tokenizer, 1)
-        dev_dataloader, _ = load_data(args, 'valid', tokenizer, 1)
+        train_dataloader, _ = load_data(args, 'train', tokenizer, 0.1)
+        dev_dataloader, _ = load_data(args, 'valid', tokenizer, 0.1)
 
         with open(args.deepspeed_config, "r") as f:
             deepspeed_conf = json.load(f)
@@ -231,7 +231,7 @@ def main():
                 for k in no_model_batch:
                     no_model_batch[k] = no_model_batch[k].to(device)
 
-                import pdb;pdb.set_trace
+                import pdb;pdb.set_trace()
                 output = model(**batch)
                 labels = no_model_batch["labels"]
                 losses = mpu.vocab_parallel_cross_entropy(output.contiguous().float(), labels)
@@ -289,7 +289,7 @@ def main():
 
     if args.do_eval:
         # evaluate on the test
-        test_dataloader, test_dataset = load_data(args, 'test', tokenizer, 1)
+        test_dataloader, test_dataset = load_data(args, 'test', tokenizer, 0.1)
 
         if args.do_train:
             # if do training, then evaluate the one with the max acc on dev set.
