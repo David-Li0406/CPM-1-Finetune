@@ -14,7 +14,6 @@ MAXSEQLEN=200
 CUR_PATH=$(realpath $0)
 CUR_DIR=$(dirname ${CUR_PATH})
 DS_CONFIG="${CUR_DIR}/../ds_config/ds_finetune_lm_large_fp32.json"
-
 python3 -m torch.distributed.launch --master_port 1111 --nproc_per_node 1 finetune_lm.py \
        --do_train \
        --do_eval \
