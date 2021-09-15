@@ -39,7 +39,7 @@ from utils import initialize_distributed, set_random_seed, setup_model_and_optim
 
 
 class GenDataset(torch.utils.data.Dataset):
-    def __init__(self, args, data_path, split, tokenizer: GPT2Tokenizer, ratio=1):
+    def __init__(self, args, data_path, split, tokenizer: GPT2Tokenizer, ratio=0.1):
         self.split = split
         self.tokenizer = tokenizer
         self.ratio = ratio
