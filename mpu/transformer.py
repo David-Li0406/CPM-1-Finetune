@@ -401,7 +401,10 @@ class GPT2ParallelTransformer(torch.nn.Module):
                 layers_ = self.layers[start:end]
                 x_ = inputs[0]
                 for layer in layers_:
-                    x_ = layer(x_, inputs[1])
+                    try:
+                        x_ = layer(x_, inputs[1])
+                    except:
+                        raise
                 return x_
             return custom_forward
 

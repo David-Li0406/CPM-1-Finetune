@@ -94,7 +94,11 @@ class GPT2Model(torch.nn.Module):
         embeddings = self.embedding_dropout(embeddings)
 
         # Transformer.
-        transformer_output = self.transformer(embeddings, attention_mask)
+        try:
+            transformer_output = self.transformer(embeddings, attention_mask)
+        except:
+            print(embeddings.shape, attention_mask.shape)
+            raise
 
         # Parallel logits.
         transformer_output_parallel = mpu.copy_to_model_parallel_region(
