@@ -231,6 +231,7 @@ def main():
                 for k in no_model_batch:
                     no_model_batch[k] = no_model_batch[k].to(device)
 
+                import pdb;pdb.set_trace
                 output = model(**batch)
                 labels = no_model_batch["labels"]
                 losses = mpu.vocab_parallel_cross_entropy(output.contiguous().float(), labels)
