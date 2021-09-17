@@ -57,13 +57,16 @@ class GenDataset(torch.utils.data.Dataset):
 
     def process(self, data):
         samples = []
+        # 只用0结点处理dataset
         for doc in tqdm(data[:int(self.ratio * len(data))], disable=(torch.distributed.get_rank() != 0)):
             token_ids = self.tokenizer.encode(doc)
             token_ids.append(self.eod_token)
             start = 0
+            # 对于长度超过seq_length的句子进行截取
             while start + self.seq_length + 1 < len(token_ids):
                 samples.append(token_ids[start: start + self.seq_length + 1])
                 start = start + self.seq_length + 1
+            # 最后剩余的部分用pad补全
             samples.append(token_ids[start:] + [self.pad_id] * (self.seq_length + 1 - (len(token_ids) - start)))
 
         return samples
@@ -79,6 +82,7 @@ class GenDataset(torch.utils.data.Dataset):
 
         # triangle attention mask
         attn_mask = torch.tril(torch.ones((self.seq_length, self.seq_length))).unsqueeze(0)
+        # seq_len,bs
         position_ids = torch.arange(self.seq_length, dtype=torch.long).unsqueeze(0).repeat(bs, 1)
 
         if self.args.fp16:
@@ -87,6 +91,7 @@ class GenDataset(torch.utils.data.Dataset):
         # the data that need to go through the model
         batch_sample = {
             "input_ids": torch.ones(bs, self.seq_length).long() * self.pad_id,
+            # 1,1,seq_length,seq_length
             "attention_mask": attn_mask.unsqueeze(1),
             "position_ids": position_ids,
         }
@@ -99,8 +104,11 @@ class GenDataset(torch.utils.data.Dataset):
 
         for i, samp in enumerate(samps):
             assert len(samp) == self.seq_length + 1, (len(samp), self.seq_length)
+            # input_ids到eos结束
             batch_sample["input_ids"][i] = torch.tensor(samp[:-1], dtype=torch.long)
+            # labels从第二个开始
             no_model_sample["labels"][i] = torch.tensor(samp[1:], dtype=torch.long)
+            # loss_mask计算所有不是pad的loss
             no_model_sample["loss_mask"][i] = (no_model_sample["labels"][i] != self.pad_id).float()
 
         return batch_sample, no_model_sample
