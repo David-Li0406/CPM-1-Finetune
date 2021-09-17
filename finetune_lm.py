@@ -50,25 +50,54 @@ class GenDataset(torch.utils.data.Dataset):
         self.pad_id = tokenizer.encoder['<pad>']
         self.eod_token = tokenizer.encoder['<eod>']
         args.eod_token = tokenizer.encoder['<eod>']
+        self.sep_token = tokenizer.encoder['<sep>']
 
-        with open(data_path, "r") as f:
-            data = f.readlines()
+        # with open(data_path, "r") as f:
+        #     data = f.readlines()
+        # self.samples = self.process(data)
+        data = json.load(open('./data/情感多轮数据_merged.json','r',encoding='utf8'))
         self.samples = self.process(data)
 
-    def process(self, data):
-        samples = []
-        # 只用0结点处理dataset
-        for doc in tqdm(data[:int(self.ratio * len(data))], disable=(torch.distributed.get_rank() != 0)):
-            token_ids = self.tokenizer.encode(doc)
-            token_ids.append(self.eod_token)
-            start = 0
-            # 对于长度超过seq_length的句子进行截取
-            while start + self.seq_length + 1 < len(token_ids):
-                samples.append(token_ids[start: start + self.seq_length + 1])
-                start = start + self.seq_length + 1
-            # 最后剩余的部分用pad补全
-            samples.append(token_ids[start:] + [self.pad_id] * (self.seq_length + 1 - (len(token_ids) - start)))
+    # def process(self, data):
+    #     samples = []
+    #     # 只用0结点处理dataset
+    #     for doc in tqdm(data[:int(self.ratio * len(data))], disable=(torch.distributed.get_rank() != 0)):
+    #         token_ids = self.tokenizer.encode(doc)
+    #         token_ids.append(self.eod_token)
+    #         start = 0
+    #         # 对于长度超过seq_length的句子进行截取
+    #         while start + self.seq_length + 1 < len(token_ids):
+    #             samples.append(token_ids[start: start + self.seq_length + 1])
+    #             start = start + self.seq_length + 1
+    #         # 最后剩余的部分用pad补全
+    #         samples.append(token_ids[start:] + [self.pad_id] * (self.seq_length + 1 - (len(token_ids) - start)))
 
+    #     return samples
+
+    def process(self, data):
+        '''
+        data:{
+            'data':[
+                {
+                    'content':[,],
+                    'class':,
+                    'scenario:,'
+                }
+            ]
+        }
+        '''
+        samples = []
+        for item in tqdm(data[:int(self.ratio * len(data['data']))], disable=(torch.distributed.get_rank() != 0)):
+            for position, dialo in enumerate(item['content']):
+                assert len(dialo)< self.seq_length
+                token_ids = self.tokenizer.encode(dialo)
+                _position = position
+                cur_length = len(token_ids)
+                while _position > 0 and cur_length + len(self.tokenizer.encode(item['content'][_position-1])) + 1 < self.seq_length:
+                    token_ids = self.tokenizer.encode(item['content'][_position-1]) + [self.sep_token] + token_ids
+                    cur_length = len(token_ids)
+                    _position -= 1
+                samples.append(token_ids + [self.pad_id] * (self.seq_length - len(token_ids)))
         return samples
 
     def __len__(self):
@@ -103,11 +132,11 @@ class GenDataset(torch.utils.data.Dataset):
         }
 
         for i, samp in enumerate(samps):
-            assert len(samp) == self.seq_length + 1, (len(samp), self.seq_length)
+            assert len(samp) == self.seq_length, (len(samp), self.seq_length)
             # input_ids到eos结束
-            batch_sample["input_ids"][i] = torch.tensor(samp[:-1], dtype=torch.long)
+            batch_sample["input_ids"][i] = torch.tensor(samp, dtype=torch.long)
             # labels从第二个开始
-            no_model_sample["labels"][i] = torch.tensor(samp[1:], dtype=torch.long)
+            no_model_sample["labels"][i] = torch.tensor(samp[1:]+[self.tokenizer.encode('<eos>')], dtype=torch.long)
             # loss_mask计算所有不是pad的loss
             no_model_sample["loss_mask"][i] = (no_model_sample["labels"][i] != self.pad_id).float()
 
