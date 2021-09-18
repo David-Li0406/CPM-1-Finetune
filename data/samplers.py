@@ -141,6 +141,8 @@ class DistributedBatchSampler(data.sampler.BatchSampler):
 
     def _batch(self, batch):
         """extracts samples only pertaining to this worker's batch"""
+        # interverleave == True,间隔取
+        # interverleave == False,连续取
         if self.interleave:
             return batch[self.rank:self.batch_size:self.world_size]
         start = self.rank * self.batch_size // self.world_size

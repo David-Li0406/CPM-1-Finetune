@@ -538,6 +538,7 @@ def initialize_distributed(args):
     """Initialize torch.distributed."""
 
     # Manually set the device ids.
+    # rank代表全部节点的进程编号，torch.cuda.device_count()代表当前节点的可用GPU数量
     device = args.rank % torch.cuda.device_count()
     if args.local_rank is not None:
         device = args.local_rank

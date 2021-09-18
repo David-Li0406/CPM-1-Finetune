@@ -53,10 +53,12 @@ def initialize_model_parallel(model_parallel_size_):
     assert torch.distributed.is_initialized()
     world_size = torch.distributed.get_world_size()
     model_parallel_size = min(model_parallel_size_, world_size)
+    # 确保world_size可以被model_parallel_size整除
     ensure_divisibility(world_size, model_parallel_size)
     rank = torch.distributed.get_rank()
 
     # Build the data parallel groups.
+    # 全局变量，记录当前进程所属的data parallel group句柄
     global _DATA_PARALLEL_GROUP
     assert _DATA_PARALLEL_GROUP is None, \
         'data parallel group is already initialized'
@@ -67,6 +69,7 @@ def initialize_model_parallel(model_parallel_size_):
             _DATA_PARALLEL_GROUP = group
 
     # Build the model parallel groups.
+    # 全局变量，记录当前进程所属的model parappel group句柄
     global _MODEL_PARALLEL_GROUP
     assert _MODEL_PARALLEL_GROUP is None, \
         'model parallel group is already initialized'
